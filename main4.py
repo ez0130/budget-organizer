@@ -4,16 +4,16 @@ from tkinter import filedialog as fd
 from tkinter.messagebox import showinfo
 import pandas as pd
 import json
+import ast
 
 
 # create the root window
 root = tk.Tk()
 root.title('Budget')
 root.resizable(True, True)
-root.geometry('500x300')
+root.geometry('600x400')
 
 
-    
 
 def read_excel_file():
     global df2
@@ -41,27 +41,18 @@ def read_excel_file():
 def keyword_add():
     x = 1
     y = str(E3.get()) +'  ' + Lb1.get((Lb1.curselection()))
-    print(str(Lb1.curselection()))
     Lb2.insert(x, y )
     dsc_cat[E3.get()] = Lb1.get((Lb1.curselection()))
-    print(type(dsc_cat))
     E3.delete(0, 'end')
     save_list_json()
-    
-    
-
-
-    
+       
 def delete_keyword():
     idx = Lb2.curselection()
     k = (str(Lb2.get(idx)).split(' '))[0]
     dsc_cat.pop(k)
     Lb2.delete(idx)
     save_list_json()
-    
-    
-
-
+ 
 canvas3 = tk.Canvas(width=200, height=20)  # open file button
 canvas4 = tk.Canvas(width=200, height=100) # Listbox L1
 canvas6 = tk.Canvas(width=200, height=100) # scroll bar 
@@ -80,19 +71,34 @@ E3.place(x=0, y = 10)
 B1 = tk.Button(canvas1, text="Add", command = keyword_add)
 B1.place(x=100, y = 10)
 
-
-
 Lb1 = tk.Listbox(canvas4)
-Lb1.insert(1, "Gas/Car")
-Lb1.insert(2, "Grocery")
-Lb1.insert(3, "Lunch")
-Lb1.insert(4, "Reoccuring")
-Lb1.insert(5, "Restaurant")
-Lb1.insert(6, "Rent, home insurance,")
-Lb1.insert(7, "Health Insurance")
-Lb1.insert(8, "One time")
 Lb1.pack()
 
+def add_category():
+    global x
+    x = 1
+    Lb1.insert(x, E4.get())
+    x += 1
+    category_list.append(E4.get())
+    E4.delete(0, 'end')
+    save_category()
+
+def delete_category():
+    global x
+    x -= 1
+    idx = Lb1.curselection()
+    if idx:
+        category_list.pop(Lb1.get(idx))
+        Lb1.delete(idx)
+        save_category() 
+    
+    
+E4 = tk.Entry(canvas4, width = 12)
+E4.pack() 
+B4 = tk.Button(canvas4, text='Add', command = add_category)
+B5 = tk.Button(canvas4, text='Delete', command = delete_category)
+B4.pack()
+B5.pack()
 
 
 scrollbar = tk.Scrollbar(canvas6)
@@ -109,44 +115,46 @@ B2.pack()
 # open button
 open_button = ttk.Button(canvas3, text='Open a File', command=read_excel_file())
 open_button.pack(expand=True)
-
+'''
 def motion(event):
   print("%s, %s" % (event.x, event.y))
   return
 root.bind('<Button-1>', motion)
-
+'''
 
 # keeping the keyword list and options
-
-with open("keyword.json", "r") as f:
-    dsc_cat = json.load(f)
-    print(dsc_cat, ' dsc')
-    for key in dsc_cat:
-            x = 1
-            y = key +'  ' + dsc_cat[key]
-            Lb2.insert(x, y )
-            x += 1
-
+try: 
+    with open("keyword.json", "r") as f:
+        dsc_cat = json.load(f)
+        for key in dsc_cat:
+                x = 1
+                y = key +'  ' + dsc_cat[key]
+                Lb2.insert(x, y )
+                x += 1
+    with open("category.txt", 'r') as f:
+        contents = f.read()
+        category_list = ast.literal_eval(contents)
+        for x in category_list:
+            a = 1
+            Lb1.insert(a, x)
+            a += 1
+except:
+    category_list = []
+    dsc_cat = dict()
  
 def save_file():
     for key in dsc_cat:
         mask = df2['Description'].str.contains(key)    
         df2.loc[mask, "Category"] = dsc_cat[key]
     print(df2.head(10))
-    
+    save_category()
     save_list_json()
     
-    #root.withdraw()
-    # Get the file name and location to save the file
+  
     file_path = fd.asksaveasfilename(defaultextension='.xlsx', filetypes=[('excel', '*.xlsx'), ('All Files', '*.*')])
-    # Show the root window again
-    #root.deiconify()
-
-    # If the user cancels the dialog, the file_path will be an empty string
+   
     if file_path:
-        # Write some text to the file
         df2.to_excel(file_path, index=False)
-
         print(f'File saved to {file_path}')
     else:
         print('File save cancelled')
@@ -160,10 +168,15 @@ def save_list_json():
         mask = df2['Description'].str.contains(key)    
         df2.loc[mask, "Category"] = dsc_cat[key]
 
+def save_category():
+    with open("category.txt", 'w') as f:
+        f.write(str(category_list))
+
 
 B3 = tk.Button(canvas7, text="Save", command = lambda: (save_file(), save_list_json()))
 B3.pack()
 
 root.update()
+
 # run the application
 root.mainloop()
